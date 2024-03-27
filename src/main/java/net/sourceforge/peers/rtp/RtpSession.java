@@ -118,6 +118,7 @@ public class RtpSession {
                     @Override
                     public Void run() {
                         try {
+                            logger.info("发送数据----------");
                             datagramSocket.send(datagramPacket);
                         } catch (IOException e) {
                             logger.error("cannot send rtp packet", e);

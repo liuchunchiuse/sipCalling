@@ -29,6 +29,9 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
+/**
+ * 发送实时信息
+ */
 public class RtpSender implements Runnable {
 
     private PipedInputStream encodedData;
