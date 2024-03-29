@@ -94,7 +94,9 @@ public class JavaxSoundManager extends AbstractSoundManager {
                 @Override
                 public Void run() {
                     try {
+                        //用于从声卡捕获音频数据
                         targetDataLine = (TargetDataLine) AudioSystem.getLine(targetInfo);
+                        //指定的音频格式打开该线程
                         targetDataLine.open(audioFormat);
                     } catch (LineUnavailableException e) {
                         logger.error("target line unavailable", e);
@@ -106,15 +108,18 @@ public class JavaxSoundManager extends AbstractSoundManager {
                         logger.error("throwable " + t.getMessage());
                         return null;
                     }
+                    //开始音频捕获
                     targetDataLine.start();
                     synchronized (sourceDataLineMutex) {
                         try {
+                            //向声卡播放音频数据
                             sourceDataLine = (SourceDataLine) AudioSystem.getLine(sourceInfo);
                             sourceDataLine.open(audioFormat);
                         } catch (LineUnavailableException e) {
                             logger.error("source line unavailable", e);
                             return null;
                         }
+                        //开始音频播放
                         sourceDataLine.start();
                     }
                     return null;
