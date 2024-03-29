@@ -30,7 +30,6 @@ import java.io.PipedOutputStream;
 import java.util.concurrent.CountDownLatch;
 
 
-
 public class CaptureRtpSender {
 
     public static final int PIPE_SIZE = 4096;
@@ -41,7 +40,7 @@ public class CaptureRtpSender {
     private RtpSender rtpSender;
 
     public CaptureRtpSender(RtpSession rtpSession, SoundSource soundSource,
-            boolean mediaDebug, Codec codec, Logger logger, String peersHome)
+                            boolean mediaDebug, Codec codec, Logger logger, String peersHome)
             throws IOException {
         super();
         this.rtpSession = rtpSession;
@@ -49,18 +48,24 @@ public class CaptureRtpSender {
         // Encoder and RtpSender imposes a synchronization point at the
         // end of life of those threads to a void read end dead exceptions
         CountDownLatch latch = new CountDownLatch(3);
+        //未编码的输出流
         PipedOutputStream rawDataOutput = new PipedOutputStream();
+        //未编码的输入流
         PipedInputStream rawDataInput;
         try {
+            //与未编码的输出流建立连接,input负责输入,out负责输出
             rawDataInput = new PipedInputStream(rawDataOutput, PIPE_SIZE);
         } catch (IOException e) {
             logger.error("input/output error", e);
             return;
         }
-        
+
+        //编码的输出流
         PipedOutputStream encodedDataOutput = new PipedOutputStream();
+        //编码的输入流
         PipedInputStream encodedDataInput;
         try {
+            //与编码的输出流建立连接,input负责输入,out负责输出
             encodedDataInput = new PipedInputStream(encodedDataOutput,
                     PIPE_SIZE);
         } catch (IOException e) {
@@ -68,42 +73,43 @@ public class CaptureRtpSender {
             rawDataInput.close();
             return;
         }
+        //读取音频数据到out
         capture = new Capture(rawDataOutput, soundSource, logger, latch);
         switch (codec.getPayloadType()) {
-        case RFC3551.PAYLOAD_TYPE_PCMU:
-            encoder = new PcmuEncoder(rawDataInput, encodedDataOutput,
-                    mediaDebug, logger, peersHome, latch);
-            break;
-        case RFC3551.PAYLOAD_TYPE_PCMA:
-            encoder = new PcmaEncoder(rawDataInput, encodedDataOutput,
-                    mediaDebug, logger, peersHome, latch);
-            break;
-        default:
-            encodedDataInput.close();
-            rawDataInput.close();
-            throw new RuntimeException("unknown payload type");
+            case RFC3551.PAYLOAD_TYPE_PCMU:
+                encoder = new PcmuEncoder(rawDataInput, encodedDataOutput,
+                        mediaDebug, logger, peersHome, latch);
+                break;
+            case RFC3551.PAYLOAD_TYPE_PCMA:
+                encoder = new PcmaEncoder(rawDataInput, encodedDataOutput,
+                        mediaDebug, logger, peersHome, latch);
+                break;
+            default:
+                encodedDataInput.close();
+                rawDataInput.close();
+                throw new RuntimeException("unknown payload type");
         }
         rtpSender = new RtpSender(encodedDataInput, rtpSession, mediaDebug,
                 codec, logger, peersHome, latch);
     }
 
     public void start() throws IOException {
-        
+
         capture.setStopped(false);
         encoder.setStopped(false);
         rtpSender.setStopped(false);
-        
+
         Thread captureThread = new Thread(capture,
                 Capture.class.getSimpleName());
         Thread encoderThread = new Thread(encoder,
                 Encoder.class.getSimpleName());
         Thread rtpSenderThread = new Thread(rtpSender,
                 RtpSender.class.getSimpleName());
-        
+
         captureThread.start();
         encoderThread.start();
         rtpSenderThread.start();
-        
+
     }
 
     public void stop() {

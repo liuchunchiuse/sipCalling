@@ -50,9 +50,17 @@ public class MediaManager {
         dtmfFactory = new DtmfFactory();
     }
 
+    /**
+     * 开始发送消息
+     * @param localAddress
+     * @param remoteAddress
+     * @param remotePort
+     * @param codec
+     * @param soundSource
+     */
     private void startRtpSessionOnSuccessResponse(String localAddress,
-            String remoteAddress, int remotePort, Codec codec,
-            SoundSource soundSource) {
+                                                  String remoteAddress, int remotePort, Codec codec,
+                                                  SoundSource soundSource) {
         InetAddress inetAddress;
         try {
             inetAddress = InetAddress.getByName(localAddress);
@@ -60,10 +68,10 @@ public class MediaManager {
             logger.error("unknown host: " + localAddress, e);
             return;
         }
-        
+        //创建rpt会话
         rtpSession = new RtpSession(inetAddress, datagramSocket,
                 userAgent.isMediaDebug(), logger, userAgent.getPeersHome());
-        
+
         try {
             inetAddress = InetAddress.getByName(remoteAddress);
             rtpSession.setRemoteAddress(inetAddress);
@@ -71,9 +79,10 @@ public class MediaManager {
             logger.error("unknown host: " + remoteAddress, e);
         }
         rtpSession.setRemotePort(remotePort);
-        
-        
+
+
         try {
+            //捕获实时传输sender
             captureRtpSender = new CaptureRtpSender(rtpSession,
                     soundSource, userAgent.isMediaDebug(), codec, logger,
                     userAgent.getPeersHome());
@@ -89,6 +98,13 @@ public class MediaManager {
         }
     }
 
+    /**
+     * 被叫接通消息接收
+     * @param localAddress
+     * @param remoteAddress
+     * @param remotePort
+     * @param codec
+     */
     public void successResponseReceived(String localAddress,
             String remoteAddress, int remotePort, Codec codec) {
         switch (userAgent.getMediaMode()) {
@@ -147,7 +163,7 @@ public class MediaManager {
     }
 
     private void startRtpSession(String destAddress, int destPort,
-        Codec codec, SoundSource soundSource) {
+                                 Codec codec, SoundSource soundSource) {
         rtpSession = new RtpSession(userAgent.getConfig()
                 .getLocalInetAddress(), datagramSocket,
                 userAgent.isMediaDebug(), logger, userAgent.getPeersHome());
@@ -159,7 +175,7 @@ public class MediaManager {
             logger.error("unknown host: " + destAddress, e);
         }
         rtpSession.setRemotePort(destPort);
-        
+
         try {
             captureRtpSender = new CaptureRtpSender(rtpSession,
                     soundSource, userAgent.isMediaDebug(), codec, logger,

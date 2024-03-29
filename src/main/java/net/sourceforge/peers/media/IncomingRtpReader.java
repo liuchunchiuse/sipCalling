@@ -29,6 +29,10 @@ import net.sourceforge.peers.sdp.Codec;
 import java.io.FileInputStream;
 import java.io.IOException;
 
+/**
+ * 接收进来的实时信息读取
+ */
+@Slf4j
 public class IncomingRtpReader implements RtpListener {
 
     private RtpSession rtpSession;

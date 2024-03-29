@@ -51,6 +51,7 @@ public abstract class Encoder implements Runnable {
         isStopped = false;
     }
     
+    @Override
     public void run() {
         byte[] buffer;
         if (mediaDebug) {

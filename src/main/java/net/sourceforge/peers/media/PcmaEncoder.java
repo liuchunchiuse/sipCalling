@@ -53,6 +53,11 @@ public class PcmaEncoder extends Encoder {
         super(rawData, encodedData, mediaDebug, logger, peersHome, latch);
     }
 
+    /**
+     * 处理音频数据的函数，将输入的音频数据（media）进行压缩处理，并返回压缩后的音频数据
+     * @param media
+     * @return
+     */
     @Override
     public byte[] process(byte[] media) {
         byte[] compressed = new byte[media.length / 2];

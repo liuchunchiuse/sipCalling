@@ -194,6 +194,15 @@ public class JavaxSoundManager extends AbstractSoundManager {
         return buffer;
     }
 
+
+
+    /**
+     * 进入这个方法写入设备
+     * @param buffer
+     * @param offset
+     * @param length
+     * @return
+     */
     @Override
     public int writeData(byte[] buffer, int offset, int length) {
         int numberOfBytesWritten;

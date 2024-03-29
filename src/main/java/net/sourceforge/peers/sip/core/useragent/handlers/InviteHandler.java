@@ -487,7 +487,6 @@ public class InviteHandler extends DialogMethodHandler
         if (!RFC3261.METHOD_INVITE.equals(method)) {
             return;
         }
-        
         challenged = false;
         
         

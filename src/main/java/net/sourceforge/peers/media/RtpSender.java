@@ -19,6 +19,7 @@
 
 package net.sourceforge.peers.media;
 
+import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.peers.Logger;
 import net.sourceforge.peers.rtp.RtpPacket;
 import net.sourceforge.peers.rtp.RtpSession;
@@ -32,6 +33,7 @@ import java.util.concurrent.CountDownLatch;
 /**
  * 发送实时信息
  */
+@Slf4j
 public class RtpSender implements Runnable {
 
     private PipedInputStream encodedData;
@@ -44,10 +46,10 @@ public class RtpSender implements Runnable {
     private Logger logger;
     private String peersHome;
     private CountDownLatch latch;
-    
+
     public RtpSender(PipedInputStream encodedData, RtpSession rtpSession,
-            boolean mediaDebug, Codec codec, Logger logger, String peersHome,
-            CountDownLatch latch) {
+                     boolean mediaDebug, Codec codec, Logger logger, String peersHome,
+                     CountDownLatch latch) {
         this.encodedData = encodedData;
         this.rtpSession = rtpSession;
         this.mediaDebug = mediaDebug;
@@ -60,14 +62,15 @@ public class RtpSender implements Runnable {
                 new ArrayList<RtpPacket>());
     }
 
+    @Override
     public void run() {
         if (mediaDebug) {
             SimpleDateFormat simpleDateFormat =
-                new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+                    new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
             String date = simpleDateFormat.format(new Date());
             String fileName = peersHome + File.separator
-                + AbstractSoundManager.MEDIA_DIR + File.separator + date
-                + "_rtp_sender.input";
+                    + AbstractSoundManager.MEDIA_DIR + File.separator + date
+                    + "_rtp_sender.input";
             try {
                 rtpSenderInput = new FileOutputStream(fileName);
             } catch (FileNotFoundException e) {
@@ -75,6 +78,7 @@ public class RtpSender implements Runnable {
                 return;
             }
         }
+        //初始化rtp包
         RtpPacket rtpPacket = new RtpPacket();
         rtpPacket.setVersion(2);
         rtpPacket.setPadding(false);
@@ -86,24 +90,28 @@ public class RtpSender implements Runnable {
         int sequenceNumber = random.nextInt();
         rtpPacket.setSequenceNumber(sequenceNumber);
         rtpPacket.setSsrc(random.nextInt());
+        //缓冲区大小
         int buf_size = Capture.BUFFER_SIZE / 2;
         byte[] buffer = new byte[buf_size];
+
         int timestamp = 0;
+        //已经读取的总长度
         int numBytesRead;
+        //每次读取的长度
         int tempBytesRead;
         long sleepTime = 0;
         long offset = 0;
         long lastSentTime = System.nanoTime();
         // indicate if its the first time that we send a packet (dont wait)
         boolean firstTime = true;
-        
+
         while (!isStopped) {
             numBytesRead = 0;
             try {
                 while (!isStopped && numBytesRead < buf_size) {
                     // expect that the buffer is full
-                    tempBytesRead = encodedData.read(buffer, numBytesRead,
-                            buf_size - numBytesRead);
+                    //input管道读数据,一个缓冲区320,从0开始偏移,len是最大偏移量
+                    tempBytesRead = encodedData.read(buffer, numBytesRead, buf_size - numBytesRead);
                     numBytesRead += tempBytesRead;
                 }
             } catch (IOException e) {
@@ -126,6 +134,7 @@ public class RtpSender implements Runnable {
                 }
             }
             if (pushedPackets.size() > 0) {
+                log.info("pushedPackets数量大于0");
                 RtpPacket pushedPacket = pushedPackets.remove(0);
                 rtpPacket.setMarker(pushedPacket.isMarker());
                 rtpPacket.setPayloadType(pushedPacket.getPayloadType());
@@ -133,19 +142,21 @@ public class RtpSender implements Runnable {
                 byte[] data = pushedPacket.getData();
                 rtpPacket.setData(data);
             } else {
+                log.info("pushedPackets数量小于0");
                 if (rtpPacket.getPayloadType() != codec.getPayloadType()) {
                     rtpPacket.setPayloadType(codec.getPayloadType());
                     rtpPacket.setMarker(false);
                 }
                 rtpPacket.setData(trimmedBuffer);
             }
-            
+
             rtpPacket.setSequenceNumber(sequenceNumber++);
             if (rtpPacket.isIncrementTimeStamp()) {
-                    timestamp += buf_size;
-                }
+                timestamp += buf_size;
+            }
             rtpPacket.setTimestamp(timestamp);
             if (firstTime) {
+                //第一次发送,直接发送
                 rtpSession.send(rtpPacket);
                 lastSentTime = System.nanoTime();
                 firstTime = false;
