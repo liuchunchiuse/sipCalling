@@ -25,6 +25,9 @@ import net.sourceforge.peers.rtp.RtpPacket;
 import net.sourceforge.peers.rtp.RtpSession;
 import net.sourceforge.peers.sdp.Codec;
 
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -105,6 +108,7 @@ public class RtpSender implements Runnable {
         // indicate if its the first time that we send a packet (dont wait)
         boolean firstTime = true;
 
+
         while (!isStopped) {
             numBytesRead = 0;
             try {
@@ -155,6 +159,7 @@ public class RtpSender implements Runnable {
                 timestamp += buf_size;
             }
             rtpPacket.setTimestamp(timestamp);
+
             if (firstTime) {
                 //第一次发送,直接发送
                 rtpSession.send(rtpPacket);

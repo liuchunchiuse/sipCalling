@@ -20,5 +20,18 @@
 package net.sourceforge.peers.media;
 
 public enum MediaMode {
-    none, captureAndPlayback, echo, file
+    none,
+    /**
+     * 通过麦克风
+     */
+    captureAndPlayback,
+    echo,
+    /**
+     * 读取文件
+     */
+    file,
+    /**
+     * 大模型回复
+     */
+    model;
 }

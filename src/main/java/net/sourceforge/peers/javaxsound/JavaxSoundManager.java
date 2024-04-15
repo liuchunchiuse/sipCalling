@@ -24,10 +24,7 @@ import net.sourceforge.peers.media.AbstractSoundManager;
 import net.sourceforge.peers.sip.Utils;
 
 import javax.sound.sampled.*;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.text.SimpleDateFormat;
@@ -46,8 +43,8 @@ public class JavaxSoundManager extends AbstractSoundManager {
     private boolean mediaDebug;
     private Logger logger;
     private String peersHome;
-    
-    public JavaxSoundManager(boolean mediaDebug, Logger logger, String peersHome) {
+
+    public JavaxSoundManager(boolean mediaDebug, Logger logger, String peersHome){
         this.mediaDebug = mediaDebug;
         this.logger = logger;
         this.peersHome = peersHome;
@@ -66,7 +63,7 @@ public class JavaxSoundManager extends AbstractSoundManager {
         logger.debug("openAndStartLines");
         if (mediaDebug) {
             SimpleDateFormat simpleDateFormat =
-                new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+                    new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
             String date = simpleDateFormat.format(new Date());
             StringBuffer buf = new StringBuffer();
             buf.append(peersHome).append(File.separator);
@@ -78,10 +75,10 @@ public class JavaxSoundManager extends AbstractSoundManager {
             buf.append(audioFormat.getChannels()).append("_");
             buf.append(audioFormat.isBigEndian() ? "be" : "le");
             try {
-                microphoneOutput = new FileOutputStream(buf.toString()
-                        + "_microphone.output");
+           /*     microphoneOutput = new FileOutputStream(buf.toString()
+                        + "_microphone.output");*/
                 speakerInput = new FileOutputStream(buf.toString()
-                        + "_speaker.input");
+                        + "_speaker.wav");
             } catch (FileNotFoundException e) {
                 logger.error("cannot create file", e);
                 return;
@@ -89,37 +86,37 @@ public class JavaxSoundManager extends AbstractSoundManager {
         }
         // AccessController.doPrivileged added for plugin compatibility
         AccessController.doPrivileged(
-            new PrivilegedAction<Void>() {
+                new PrivilegedAction<Void>() {
 
-                @Override
-                public Void run() {
-                    try {
-                        targetDataLine = (TargetDataLine) AudioSystem.getLine(targetInfo);
-                        targetDataLine.open(audioFormat);
-                    } catch (LineUnavailableException e) {
-                        logger.error("target line unavailable", e);
-                        return null;
-                    } catch (SecurityException e) {
-                        logger.error("security exception", e);
-                        return null;
-                    } catch (Throwable t) {
-                        logger.error("throwable " + t.getMessage());
-                        return null;
-                    }
-                    targetDataLine.start();
-                    synchronized (sourceDataLineMutex) {
+                    @Override
+                    public Void run() {
                         try {
-                            sourceDataLine = (SourceDataLine) AudioSystem.getLine(sourceInfo);
-                            sourceDataLine.open(audioFormat);
+                            targetDataLine = (TargetDataLine) AudioSystem.getLine(targetInfo);
+                            targetDataLine.open(audioFormat);
                         } catch (LineUnavailableException e) {
-                            logger.error("source line unavailable", e);
+                            logger.error("target line unavailable", e);
+                            return null;
+                        } catch (SecurityException e) {
+                            logger.error("security exception", e);
+                            return null;
+                        } catch (Throwable t) {
+                            logger.error("throwable " + t.getMessage());
                             return null;
                         }
-                        sourceDataLine.start();
+                        targetDataLine.start();
+                        synchronized (sourceDataLineMutex) {
+                            try {
+                                sourceDataLine = (SourceDataLine) AudioSystem.getLine(sourceInfo);
+                                sourceDataLine.open(audioFormat);
+                            } catch (LineUnavailableException e) {
+                                logger.error("source line unavailable", e);
+                                return null;
+                            }
+                            sourceDataLine.start();
+                        }
+                        return null;
                     }
-                    return null;
-                }
-        });
+                });
 
     }
 

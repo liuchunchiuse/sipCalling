@@ -19,6 +19,7 @@ import net.sourceforge.peers.sip.transport.SipRequest;
 import net.sourceforge.peers.sip.transport.SipResponse;
 import org.springframework.stereotype.Component;
 
+import java.io.FileNotFoundException;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -54,8 +55,10 @@ public class SipServiceImpl implements SipService, SipListener {
         config.setUserPart(sipDto.getName());
         config.setDomain(sipDto.getLocalIp());
         config.setPassword(sipDto.getPass());
+//        config.setMediaFile("F:/lcc/workSpace/digital-audio-filter/data/有声.wav");
         FileLogger logger = new FileLogger(peersHome);
-        JavaxSoundManager javaxSoundManager = new JavaxSoundManager(false, logger, peersHome);
+        JavaxSoundManager javaxSoundManager = null;
+        javaxSoundManager = new JavaxSoundManager(false, logger, peersHome);
         userAgent = new UserAgent(this, config, logger, javaxSoundManager);
        /* try {
             userAgent.register();

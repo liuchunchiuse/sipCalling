@@ -51,7 +51,7 @@ public class MediaManager {
     }
 
     /**
-     * 开始发送消息
+     * 主叫开始发送消息
      * @param localAddress
      * @param remoteAddress
      * @param remotePort
@@ -106,59 +106,73 @@ public class MediaManager {
      * @param codec
      */
     public void successResponseReceived(String localAddress,
-            String remoteAddress, int remotePort, Codec codec) {
-        switch (userAgent.getMediaMode()) {
-        case captureAndPlayback:
-            AbstractSoundManager soundManager = userAgent.getSoundManager();
-            soundManager.init();
-            startRtpSessionOnSuccessResponse(localAddress, remoteAddress,
-                    remotePort, codec, soundManager);
-            
-            try {
-                incomingRtpReader = new IncomingRtpReader(
-                        captureRtpSender.getRtpSession(), soundManager, codec,
-                        logger);
-            } catch (IOException e) {
-                logger.error("input/output error", e);
-                return;
-            }
+                                        String remoteAddress, int remotePort, Codec codec) {
+        switch (MediaMode.file) {
+//        switch (userAgent.getMediaMode()) {
+            case captureAndPlayback:
+                AbstractSoundManager soundManager = userAgent.getSoundManager();
+                soundManager.init();
+                startRtpSessionOnSuccessResponse(localAddress, remoteAddress,
+                        remotePort, codec, soundManager);
 
-            incomingRtpReader.start();
-            break;
+                try {
+                    incomingRtpReader = new IncomingRtpReader(
+                            captureRtpSender.getRtpSession(), soundManager, codec,
+                            logger);
+                } catch (IOException e) {
+                    logger.error("input/output error", e);
+                    return;
+                }
 
-        case echo:
-            Echo echo;
-            try {
-                echo = new Echo(datagramSocket, remoteAddress, remotePort,
-                        logger);
-            } catch (UnknownHostException e) {
-                logger.error("unknown host amongst "
-                        + localAddress + " or " + remoteAddress);
-                return;
-            }
-            userAgent.setEcho(echo);
-            Thread echoThread = new Thread(echo, Echo.class.getSimpleName());
-            echoThread.start();
-            break;
-        case file:
-            String fileName = userAgent.getConfig().getMediaFile();
-            fileReader = new FileReader(fileName, logger);
-            startRtpSessionOnSuccessResponse(localAddress, remoteAddress,
-                    remotePort, codec, fileReader);
-            try {
-                incomingRtpReader = new IncomingRtpReader(
-                        captureRtpSender.getRtpSession(), null, codec,
-                        logger);
-            } catch (IOException e) {
-                logger.error("input/output error", e);
-                return;
-            }
+                incomingRtpReader.start();
+                break;
 
-            incomingRtpReader.start();
-            break;
-        case none:
-        default:
-            break;
+            case echo:
+                Echo echo;
+                try {
+                    echo = new Echo(datagramSocket, remoteAddress, remotePort,
+                            logger);
+                } catch (UnknownHostException e) {
+                    logger.error("unknown host amongst "
+                            + localAddress + " or " + remoteAddress);
+                    return;
+                }
+                userAgent.setEcho(echo);
+                Thread echoThread = new Thread(echo, Echo.class.getSimpleName());
+                echoThread.start();
+                break;
+            case file:
+                //通过自定义文件读取内容发送到被叫
+                String fileName = userAgent.getConfig().getMediaFile();
+                fileReader = new FileReader("F:/lcc/workSpace/sipCalling/lcc.wav", logger);
+                startRtpSessionOnSuccessResponse(localAddress, remoteAddress, remotePort, codec, fileReader);
+                try {
+                    incomingRtpReader = new IncomingRtpReader(
+                            captureRtpSender.getRtpSession(), null, codec,
+                            logger);
+                } catch (IOException e) {
+                    logger.error("input/output error", e);
+                    return;
+                }
+                incomingRtpReader.start();
+                break;
+            case model:
+                //通过自定义文件读取内容发送到被叫
+                fileReader = new FileReader("F:/lcc/workSpace/sipCalling/lcc.wav", logger);
+                startRtpSessionOnSuccessResponse(localAddress, remoteAddress, remotePort, codec, fileReader);
+                try {
+                    incomingRtpReader = new IncomingRtpReader(
+                            captureRtpSender.getRtpSession(), null, codec,
+                            logger);
+                } catch (IOException e) {
+                    logger.error("input/output error", e);
+                    return;
+                }
+                incomingRtpReader.start();
+                break;
+            case none:
+            default:
+                break;
         }
     }
 
@@ -194,91 +208,91 @@ public class MediaManager {
 
     public void handleAck(String destAddress, int destPort, Codec codec) {
         switch (userAgent.getMediaMode()) {
-        case captureAndPlayback:
+            case captureAndPlayback:
 
-            AbstractSoundManager soundManager = userAgent.getSoundManager();
-            soundManager.init();
+                AbstractSoundManager soundManager = userAgent.getSoundManager();
+                soundManager.init();
 
-            startRtpSession(destAddress, destPort, codec, soundManager);
+                startRtpSession(destAddress, destPort, codec, soundManager);
 
-            try {
-                //FIXME RTP sessions can be different !
-                incomingRtpReader = new IncomingRtpReader(rtpSession,
-                        soundManager, codec, logger);
-            } catch (IOException e) {
-                logger.error("input/output error", e);
-                return;
-            }
+                try {
+                    //FIXME RTP sessions can be different !
+                    incomingRtpReader = new IncomingRtpReader(rtpSession,
+                            soundManager, codec, logger);
+                } catch (IOException e) {
+                    logger.error("input/output error", e);
+                    return;
+                }
 
-            incomingRtpReader.start();
+                incomingRtpReader.start();
 
-            break;
-        case echo:
-            Echo echo;
-            try {
-                echo = new Echo(datagramSocket, destAddress, destPort, logger);
-            } catch (UnknownHostException e) {
-                logger.error("unknown host amongst "
-                        + userAgent.getConfig().getLocalInetAddress()
+                break;
+            case echo:
+                Echo echo;
+                try {
+                    echo = new Echo(datagramSocket, destAddress, destPort, logger);
+                } catch (UnknownHostException e) {
+                    logger.error("unknown host amongst "
+                            + userAgent.getConfig().getLocalInetAddress()
                             .getHostAddress() + " or " + destAddress);
-                return;
-            }
-            userAgent.setEcho(echo);
-            Thread echoThread = new Thread(echo, Echo.class.getSimpleName());
-            echoThread.start();
-            break;
-        case file:
-            if (fileReader != null) {
-                fileReader.close();
-            }
-            String fileName = userAgent.getConfig().getMediaFile();
-            fileReader = new FileReader(fileName, logger);
-            startRtpSession(destAddress, destPort, codec, fileReader);
-            try {
-                incomingRtpReader = new IncomingRtpReader(rtpSession,
-                        null, codec, logger);
-            } catch (IOException e) {
-                logger.error("input/output error", e);
-                return;
-            }
-            incomingRtpReader.start();
-            break;
-        case none:
-        default:
-            break;
+                    return;
+                }
+                userAgent.setEcho(echo);
+                Thread echoThread = new Thread(echo, Echo.class.getSimpleName());
+                echoThread.start();
+                break;
+            case file:
+                if (fileReader != null) {
+                    fileReader.close();
+                }
+                String fileName = userAgent.getConfig().getMediaFile();
+                fileReader = new FileReader("F:/lcc/workSpace/sipCalling/lcc.wav", logger);
+                startRtpSession(destAddress, destPort, codec, fileReader);
+                try {
+                    incomingRtpReader = new IncomingRtpReader(rtpSession,
+                            null, codec, logger);
+                } catch (IOException e) {
+                    logger.error("input/output error", e);
+                    return;
+                }
+                incomingRtpReader.start();
+                break;
+            case none:
+            default:
+                break;
         }
     }
 
     public void updateRemote(String destAddress, int destPort, Codec codec) {
         switch (userAgent.getMediaMode()) {
-        case captureAndPlayback:
-            try {
-                InetAddress inetAddress = InetAddress.getByName(destAddress);
-                rtpSession.setRemoteAddress(inetAddress);
-            } catch (UnknownHostException e) {
-                logger.error("unknown host: " + destAddress, e);
-            }
-            rtpSession.setRemotePort(destPort);
-            break;
-        case echo:
-            //TODO update echo socket
-            break;
-        case file:
-            try {
-                InetAddress inetAddress = InetAddress.getByName(destAddress);
-                rtpSession.setRemoteAddress(inetAddress);
-            } catch (UnknownHostException e) {
-                logger.error("unknown host: " + destAddress, e);
-            }
-            rtpSession.setRemotePort(destPort);
-            break;
+            case captureAndPlayback:
+                try {
+                    InetAddress inetAddress = InetAddress.getByName(destAddress);
+                    rtpSession.setRemoteAddress(inetAddress);
+                } catch (UnknownHostException e) {
+                    logger.error("unknown host: " + destAddress, e);
+                }
+                rtpSession.setRemotePort(destPort);
+                break;
+            case echo:
+                //TODO update echo socket
+                break;
+            case file:
+                try {
+                    InetAddress inetAddress = InetAddress.getByName(destAddress);
+                    rtpSession.setRemoteAddress(inetAddress);
+                } catch (UnknownHostException e) {
+                    logger.error("unknown host: " + destAddress, e);
+                }
+                rtpSession.setRemotePort(destPort);
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
 
     }
-    
+
     public void sendDtmf(char digit) {
         if (captureRtpSender != null) {
             List<RtpPacket> rtpPackets = dtmfFactory.createDtmfPackets(digit);
@@ -311,24 +325,24 @@ public class MediaManager {
         }
 
         switch (userAgent.getMediaMode()) {
-        case captureAndPlayback:
-            AbstractSoundManager soundManager = userAgent.getSoundManager();
-            if (soundManager != null) {
-                soundManager.close();
-            }
-            break;
-        case echo:
-            Echo echo = userAgent.getEcho();
-            if (echo != null) {
-                echo.stop();
-                userAgent.setEcho(null);
-            }
-            break;
-        case file:
-            fileReader.close();
-            break;
-        default:
-            break;
+            case captureAndPlayback:
+                AbstractSoundManager soundManager = userAgent.getSoundManager();
+                if (soundManager != null) {
+                    soundManager.close();
+                }
+                break;
+            case echo:
+                Echo echo = userAgent.getEcho();
+                if (echo != null) {
+                    echo.stop();
+                    userAgent.setEcho(null);
+                }
+                break;
+            case file:
+                fileReader.close();
+                break;
+            default:
+                break;
         }
     }
 
