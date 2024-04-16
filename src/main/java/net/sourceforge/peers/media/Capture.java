@@ -115,8 +115,8 @@ public class Capture implements Runnable {
         }*/
         while (!isStopped) {
             buffer = soundSource.readData();
-            log.info("麦克风的字节数组长度:{}", buffer.length);
-            log.info("麦克风的字节:{}", buffer);
+            log.info("读取的字节数组长度:{}", buffer.length);
+            log.info("读取的字节:{}", buffer);
             try {
                 if (buffer == null) {
                     break;

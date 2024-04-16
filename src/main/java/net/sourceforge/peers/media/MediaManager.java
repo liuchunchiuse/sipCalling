@@ -70,7 +70,7 @@ public class MediaManager {
         }
         //创建rpt会话
         rtpSession = new RtpSession(inetAddress, datagramSocket,
-                userAgent.isMediaDebug(), logger, userAgent.getPeersHome());
+                userAgent.isMediaDebug(), logger, userAgent.getPeersHome(), soundSource);
 
         try {
             inetAddress = InetAddress.getByName(remoteAddress);
@@ -180,7 +180,7 @@ public class MediaManager {
                                  Codec codec, SoundSource soundSource) {
         rtpSession = new RtpSession(userAgent.getConfig()
                 .getLocalInetAddress(), datagramSocket,
-                userAgent.isMediaDebug(), logger, userAgent.getPeersHome());
+                userAgent.isMediaDebug(), logger, userAgent.getPeersHome(), soundSource);
 
         try {
             InetAddress inetAddress = InetAddress.getByName(destAddress);

@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8333
 spring:
 #  datasource:
 #    url: jdbc:p6spy:mysql://192.168.110.109:3306/judge_interface2?characterEncoding=utf-8&charset=utf8&useSSL=false&serverTimezone=Asia/Shanghai

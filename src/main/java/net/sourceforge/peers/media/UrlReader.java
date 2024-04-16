@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.peers.Logger;
 
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.AccessController;
@@ -48,36 +49,46 @@ import java.security.PrivilegedAction;
 // Validate
 
 @Slf4j
-public class FileReader implements SoundSource {
+public class UrlReader implements SoundSource {
 
     public final static int BUFFER_SIZE = 256;
 
-    private FileInputStream fileInputStream;
+    private InputStream inputStream;
     private Logger logger;
-    private PipedInputStream pipedInputStream = new PipedInputStream();
+    private PipedInputStream pipedInputStream;
 
     public static final int PIPE_SIZE = 4096;
 
-    private PipedOutputStream pipedOutputStream;
+    private PipedOutputStream pipedOutputStream = new PipedOutputStream();
 
-    public FileReader(String fileName, Logger logger) {
+    public UrlReader(String fileName, Logger logger) {
         this.logger = logger;
         try {
-            fileInputStream = new FileInputStream(fileName);
+            URL url = new URL(fileName);
+
+            // 打开连接
+            URLConnection connection = url.openConnection();
+
+            // 输入流读取数据
+            inputStream = connection.getInputStream();
         } catch (FileNotFoundException e) {
             log.error("file not found: " + fileName, e);
             logger.error("file not found: " + fileName, e);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
     public synchronized void close() {
-        if (fileInputStream != null) {
+        if (inputStream != null) {
             try {
-                fileInputStream.close();
+                inputStream.close();
             } catch (IOException e) {
                 logger.error("io exception", e);
             }
-            fileInputStream = null;
+            inputStream = null;
         }
     }
 
@@ -107,17 +118,17 @@ public class FileReader implements SoundSource {
 
     @Override
     public synchronized byte[] readData() {
-        if (fileInputStream == null) {
+        if (inputStream == null) {
             return null;
         }
         byte buffer[] = new byte[BUFFER_SIZE];
         try {
-            if (fileInputStream.read(buffer) >= 0) {
+            if (inputStream.read(buffer) >= 0) {
                 Thread.sleep(15);
                 return buffer;
             } else {
-                fileInputStream.close();
-                fileInputStream = null;
+                inputStream.close();
+                inputStream = null;
             }
         } catch (IOException e) {
             log.error("io exception", e);

@@ -19,6 +19,7 @@
 
 package net.sourceforge.peers.media;
 
+import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.peers.Logger;
 import net.sourceforge.peers.rtp.RFC3551;
 import net.sourceforge.peers.rtp.RtpSession;
@@ -29,7 +30,7 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.concurrent.CountDownLatch;
 
-
+@Slf4j
 public class CaptureRtpSender {
 
     public static final int PIPE_SIZE = 4096;
@@ -56,7 +57,7 @@ public class CaptureRtpSender {
             //与未编码的输出流建立连接,input负责输入,out负责输出
             rawDataInput = new PipedInputStream(rawDataOutput, PIPE_SIZE);
         } catch (IOException e) {
-            logger.error("input/output error", e);
+            log.error("input/output error", e);
             return;
         }
 
@@ -69,7 +70,7 @@ public class CaptureRtpSender {
             encodedDataInput = new PipedInputStream(encodedDataOutput,
                     PIPE_SIZE);
         } catch (IOException e) {
-            logger.error("input/output error");
+            log.error("input/output error");
             rawDataInput.close();
             return;
         }

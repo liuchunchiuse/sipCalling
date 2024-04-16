@@ -53,7 +53,7 @@ public class IncomingRtpReader implements RtpListener {
     public IncomingRtpReader(RtpSession rtpSession,
                              AbstractSoundManager soundManager, Codec codec, Logger logger)
             throws IOException {
-        logger.debug("playback codec:" + codec.toString().trim());
+        log.info("playback codec:" + codec.toString().trim());
         this.rtpSession = rtpSession;
         this.soundManager = soundManager;
 //        switch (codec.getPayloadType()) {
@@ -92,8 +92,8 @@ public class IncomingRtpReader implements RtpListener {
         byte[] rawBuf = decoder.process(rtpPacket.getData());
         if (rawBuf.length > 0) {
             finalResult.add(rawBuf);
-            log.info("字节长度:{}", rawBuf.length);
-            log.info("字节总数量:{}", finalResult.size());
+            log.info("收到的字节长度:{}", rawBuf.length);
+            log.info("收到的字节总数量:{}", finalResult.size());
             //生成一个wav音频文件
             if (finalResult.size() == 1000) {
                 try {

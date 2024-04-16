@@ -19,8 +19,10 @@
 
 package net.sourceforge.peers.rtp;
 
+import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.peers.Logger;
 import net.sourceforge.peers.media.AbstractSoundManager;
+import net.sourceforge.peers.media.SoundSource;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -40,6 +42,7 @@ import java.util.concurrent.RejectedExecutionException;
 /**
  * can be instantiated on UAC INVITE sending or on UAS 200 OK sending 
  */
+@Slf4j
 public class RtpSession {
 
     private InetAddress remoteAddress;
@@ -53,13 +56,16 @@ public class RtpSession {
     private boolean mediaDebug;
     private Logger logger;
     private String peersHome;
+    private SoundSource soundSource;
+
 
     public RtpSession(InetAddress localAddress, DatagramSocket datagramSocket,
-                      boolean mediaDebug, Logger logger, String peersHome) {
+                      boolean mediaDebug, Logger logger, String peersHome, SoundSource soundSource) {
         this.mediaDebug = mediaDebug;
         this.logger = logger;
         this.peersHome = peersHome;
         this.datagramSocket = datagramSocket;
+        this.soundSource = soundSource;
         rtpListeners = new ArrayList<RtpListener>();
         rtpParser = new RtpParser(logger);
         executorService = Executors.newSingleThreadExecutor();
@@ -78,11 +84,12 @@ public class RtpSession {
                 fileName = dir + date + "_rtp_session.input";
                 rtpSessionInput = new FileOutputStream(fileName);
             } catch (FileNotFoundException e) {
-                logger.error("cannot create file", e);
+                log.error("cannot create file", e);
                 return;
             }
         }
         executorService.submit(new Receiver());
+        log.info("=====>rptSessionSubmit success");
     }
 
     public void stop() {
@@ -123,12 +130,12 @@ public class RtpSession {
                         @Override
                         public Void run() {
                             try {
-                                logger.info("发送数据----------");
+                                log.info("发送数据----------");
                                 datagramSocket.send(datagramPacket);
                             } catch (IOException e) {
-                                logger.error("cannot send rtp packet", e);
+                                log.error("cannot send rtp packet", e);
                             } catch (SecurityException e) {
-                                logger.error("security exception", e);
+                                log.error("security exception", e);
                             }
                             return null;
                         }
@@ -139,7 +146,7 @@ public class RtpSession {
                 try {
                     rtpSessionOutput.write(buf);
                 } catch (IOException e) {
-                    logger.error("cannot write to file", e);
+                    log.error("cannot write to file", e);
                 }
             }
         }
@@ -159,7 +166,7 @@ public class RtpSession {
                 rtpSessionOutput.close();
                 rtpSessionInput.close();
             } catch (IOException e) {
-                logger.error("cannot close file", e);
+                log.error("cannot close file", e);
             }
         }
         // AccessController.doPrivileged added for plugin compatibility
@@ -183,7 +190,7 @@ public class RtpSession {
             try {
                 receiveBufferSize = datagramSocket.getReceiveBufferSize();
             } catch (SocketException e) {
-                logger.error("cannot get datagram socket receive buffer size",
+                log.error("cannot get datagram socket receive buffer size",
                         e);
                 return;
             }
@@ -202,7 +209,7 @@ public class RtpSession {
                             } catch (SocketTimeoutException e) {
                                 return socketTimeoutException;
                             } catch (IOException e) {
-                                logger.error("cannot receive packet", e);
+                                log.error("cannot receive packet", e);
                                 return ioException;
                             }
                             return noException;
@@ -241,7 +248,7 @@ public class RtpSession {
                 try {
                     rtpSessionInput.write(trimmedData);
                 } catch (IOException e) {
-                    logger.error("cannot write to file", e);
+                    log.error("cannot write to file", e);
                     return;
                 }
             }
