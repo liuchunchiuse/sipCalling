@@ -4,6 +4,8 @@ import cn.hutool.json.JSONUtil;
 import com.net.sipcall.sipcalling.service.demo.util.MD5Util;
 import com.net.sipcall.sipcalling.utils.SipUtils;
 import gov.nist.javax.sip.message.SIPRequest;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.peers.Logger;
 import net.sourceforge.peers.javaxsound.JavaxSoundManager;
@@ -16,6 +18,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import javax.sdp.*;
 import javax.sip.*;
 import javax.sip.address.Address;
 import javax.sip.address.AddressFactory;
@@ -26,13 +29,13 @@ import javax.sip.message.MessageFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * @Author: cth
@@ -51,11 +54,16 @@ public class SipMessageProcessorImpl implements SipMessageProcessor {
     String XML_HEAD = "<?xml version=";
 
     private RtpSession rtpSession;
+
+    @Getter
+    @Setter
     private DatagramSocket datagramSocket;
 
     private Logger logger;
 
     private CaptureRtpSender captureRtpSender;
+
+    private int remotePort;
 
     @Override
     public void processRequest(RequestEvent requestEvent, AddressFactory addressFactory, MessageFactory messageFactory, HeaderFactory headerFactory, SipProvider sipProvider) {
@@ -187,12 +195,66 @@ public class SipMessageProcessorImpl implements SipMessageProcessor {
                                  HeaderFactory headerFactory, SipProvider sipProvider) {
     }
 
+    private void parseSdp(String sdpData) {
+        try {
+            SdpFactory sdpFactory = SdpFactory.getInstance();
+            SessionDescription sessionDescription = sdpFactory.createSessionDescription(sdpData);
+
+            // 获取所有媒体描述
+            Vector mediaDescriptions = sessionDescription.getMediaDescriptions(true);
+            for (int i = 0; i < mediaDescriptions.size(); i++) {
+                MediaDescription mediaDescription = (MediaDescription) mediaDescriptions.get(i);
+                log.info("mediaDescription:{}", JSONUtil.toJsonStr(mediaDescriptions));
+                Media media = mediaDescription.getMedia();
+
+                // 提取媒体类型、端口号和传输协议
+                String mediaType = media.getMediaType();
+                int port = media.getMediaPort();
+                String protocol = media.getProtocol();
+
+                System.out.println("Media Type: " + mediaType + ", Port: " + port + ", Protocol: " + protocol);
+            }
+        } catch (SdpParseException e) {
+            e.printStackTrace();
+        } catch (SdpException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private void doRequestInvite(RequestEvent requestEvent, Request request, AddressFactory addressFactory, MessageFactory messageFactory,
                                  HeaderFactory headerFactory, SipProvider sipProvider, ListeningPoint listeningPoint) {
         log.info("进入处理");
         log.info("request====>:{}", JSONUtil.toJsonStr(request));
         log.info("requestURI====>:{}", request.getRequestURI());
         log.info("requestEvent====>:{}", JSONUtil.toJsonStr(requestEvent));
+
+        ContentTypeHeader contentTypeHeader = (ContentTypeHeader) request.getHeader(ContentTypeHeader.NAME);
+        if (contentTypeHeader != null && contentTypeHeader.getContentType().equalsIgnoreCase("application") &&
+                contentTypeHeader.getContentSubType().equalsIgnoreCase("sdp")) {
+
+            // 获取 SDP 信息
+            try {
+                byte[] rawContent = request.getRawContent();
+                String sdpContent = new String(rawContent, "UTF-8");
+                SessionDescription sdp = SdpFactory.getInstance().createSessionDescription(sdpContent);
+
+                // 获取媒体描述，假设只有一个音频描述
+                MediaDescription mediaDescription = (MediaDescription) sdp.getMediaDescriptions(false).get(0);
+                Media media = mediaDescription.getMedia();
+
+                remotePort = media.getMediaPort();
+                String remoteIp = sdp.getConnection().getAddress();
+                log.info("===========>remoteRtpPort:{},ip:{}", remotePort, remoteIp);
+            } catch (SdpParseException e) {
+                throw new RuntimeException(e);
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException(e);
+            } catch (SdpException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+
         SIPRequest sipRequest = (SIPRequest) requestEvent.getRequest();
         sipRequest.getRawContent();
         String requesterId = SipUtils.getUserIdFromFromHeader(sipRequest);
@@ -278,7 +340,7 @@ public class SipMessageProcessorImpl implements SipMessageProcessor {
                 + "s=-\r\n" //必选，session名称
                 + "c=IN IP4 47.99.40.56\r\n" //可选，媒体链接信息
                 + "t=0 0\r\n" //必选，会话的开始时间和结束时间。单位为秒。
-                + "m=audio 49170 RTP/AVP 0 8 101\r\n" //必选，一个会话描述包含几个媒体描述
+                + "m=audio 8830 RTP/AVP 0 8 101\r\n" //必选，一个会话描述包含几个媒体描述
                 + "a=rtpmap:0 PCMU/8000\r\n" //0或多个会话属性行
                 + "a=rtpmap:8 PCMA/8000\r\n"
                 + "a=rtpmap:101 telephone-event/8000\r\n"
@@ -292,6 +354,33 @@ public class SipMessageProcessorImpl implements SipMessageProcessor {
 
 
     private void doRequestBye(RequestEvent requestEvent, AddressFactory addressFactory, MessageFactory messageFactory, HeaderFactory headerFactory, SipProvider sipProvider) {
+        Request request = requestEvent.getRequest();
+        ServerTransaction serverTransaction = requestEvent.getServerTransaction();
+
+
+        // 创建并发送 200 OK 响应
+        Response response = null;
+        try {
+            if (serverTransaction == null) {
+                serverTransaction = sipProvider.getNewServerTransaction(request);
+            }
+            response = messageFactory.createResponse(Response.OK, request);
+            serverTransaction.sendResponse(response);
+            log.info("Sent 200 OK in response to BYE");
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        } catch (TransactionAlreadyExistsException e) {
+            throw new RuntimeException(e);
+        } catch (TransactionUnavailableException e) {
+            throw new RuntimeException(e);
+        } catch (InvalidArgumentException e) {
+            throw new RuntimeException(e);
+        } catch (SipException e) {
+            throw new RuntimeException(e);
+        }
+        // 进行任何必要的清理工作
+        rtpSession.stop();
+        captureRtpSender.stop();
     }
 
     private void doResponseRegister(ResponseEvent responseEvent, AddressFactory addressFactory, MessageFactory messageFactory, HeaderFactory headerFactory, SipProvider sipProvider, Response response) {
@@ -315,56 +404,6 @@ public class SipMessageProcessorImpl implements SipMessageProcessor {
         // WAV文件路径
 //        String wavFilePath = "https://buff8.oss-cn-shanghai.aliyuncs.com/lcc.wav";
         String wavFilePath = "/usr/local/tools/lcc.wav";
-
-
-
-       /* AudioFormat audioFormat = new AudioFormat(sampleRate, 16, channels, true, false);
-        RTPTransmitter transmitter = null;
-        SourceDataLine sourceDataLine = null;
-
-        try {
-            // 创建RTP会话
-            RTPSession session = SessionManager.createSession(payloadType, sampleRate, channels, bufferSize);
-            transmitter = (RTPTransmitter) session.createTransmitter();
-
-            // 打开目标数据线路以读取音频数据
-            TargetDataLine targetDataLine = AudioSystem.getTargetDataLine(audioFormat);
-            targetDataLine.open(audioFormat);
-            targetDataLine.start();
-
-            // 创建源数据线路以写入RTP包
-            sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
-            sourceDataLine.open(audioFormat);
-            sourceDataLine.start();
-
-            // 将目标数据线路的数据读入缓冲区，并通过RTP会话发送
-            byte[] buffer = new byte[bufferSize];
-            int numBytesRead;
-            while ((numBytesRead = targetDataLine.read(buffer, 0, buffer.length)) != -1) {
-                LocalSample sample = new LocalSample(buffer, 0, numBytesRead, sampleRate, payloadType, channels, frameSize, 0);
-                transmitter.transmit(sample);
-                sourceDataLine.write(buffer, 0, numBytesRead);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (transmitter != null) {
-                try {
-                    transmitter.stop();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (sourceDataLine != null) {
-                sourceDataLine.stop();
-                sourceDataLine.close();
-            }
-            if (targetDataLine != null) {
-                targetDataLine.stop();
-                targetDataLine.close();
-            }
-        }
-*/
         // WAV文件路径
 //        UrlReader fileReader = new UrlReader(wavFilePath, logger);
         FileReader fileReader = new FileReader(wavFilePath, logger);
@@ -372,7 +411,7 @@ public class SipMessageProcessorImpl implements SipMessageProcessor {
         fileReader.init();
         String localAddress = "47.99.40.56";
         String remoteAddress = "47.96.76.228";
-        int remotePort = 8810;
+//        int remotePort = 8830;
 
         InetAddress inetAddress;
         try {
@@ -384,6 +423,18 @@ public class SipMessageProcessorImpl implements SipMessageProcessor {
         }
         log.info("======>开始创建RtpSession");
         //创建rpt会话
+
+        try {
+            //和sdp中声明的端口一致
+            log.info("==========>判断datagramSocket是否关闭,datagramSocket是否为空:{}", Objects.isNull(datagramSocket));
+            if (Objects.isNull(datagramSocket)) {
+                datagramSocket = new DatagramSocket(8830);
+            } else {
+                log.info("==========>判断datagramSocket是否关闭,是否关闭:{}", datagramSocket.isClosed());
+            }
+        } catch (SocketException e) {
+            throw new RuntimeException(e);
+        }
         rtpSession = new RtpSession(inetAddress, datagramSocket,
                 false, logger, ".", fileReader);
 
@@ -398,7 +449,7 @@ public class SipMessageProcessorImpl implements SipMessageProcessor {
 
         Codec codec = new Codec();
         codec.setPayloadType(8);
-        codec.setName("PCMA");
+        codec.setName("PCMU");
 
         try {
             //捕获实时传输sender,第一次调用
@@ -418,15 +469,11 @@ public class SipMessageProcessorImpl implements SipMessageProcessor {
 
         try {
             rtpSession.start();
-            Thread.sleep(1000L);
             captureRtpSender.start();
-            Thread.sleep(1000L);
             incomingRtpReader.start();
             log.info("线程启动成功....");
         } catch (IOException e) {
             logger.error("input/output error", e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         }
     }
 

@@ -61,7 +61,7 @@ public class InitialRequestManager extends RequestManager
 
     /**
      * gives a new request outside of a dialog
-     *
+     * 在对话框之外给出一个新请求
      * @param requestUri
      * @param method
      * @return

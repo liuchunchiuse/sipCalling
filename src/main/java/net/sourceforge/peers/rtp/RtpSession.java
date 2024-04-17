@@ -19,6 +19,7 @@
 
 package net.sourceforge.peers.rtp;
 
+import cn.hutool.json.JSONUtil;
 import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.peers.Logger;
 import net.sourceforge.peers.media.AbstractSoundManager;
@@ -35,6 +36,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
@@ -114,14 +116,17 @@ public class RtpSession {
      * @param rtpPacket
      */
     public synchronized void send(RtpPacket rtpPacket) {
+        log.info("===============>进入send方法,rtpPacket:{},datagramSocket:{}", rtpPacket, Objects.isNull(datagramSocket));
         if (datagramSocket == null) {
             return;
         }
         byte[] buf = rtpParser.encode(rtpPacket);
+        log.info("===============>buf:{}", JSONUtil.toJsonStr(buf));
         final DatagramPacket datagramPacket =
                 new DatagramPacket(buf, buf.length,
                         remoteAddress, remotePort);
 
+        log.info("!datagramSocket.isClosed:{}", !datagramSocket.isClosed());
         if (!datagramSocket.isClosed()) {
             // AccessController.doPrivileged added for plugin compatibility
             AccessController.doPrivileged(
@@ -130,7 +135,7 @@ public class RtpSession {
                         @Override
                         public Void run() {
                             try {
-                                log.info("发送数据----------");
+                                log.info("===============>发送数据----------");
                                 datagramSocket.send(datagramPacket);
                             } catch (IOException e) {
                                 log.error("cannot send rtp packet", e);

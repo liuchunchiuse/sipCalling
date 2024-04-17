@@ -79,7 +79,7 @@ public class IncomingRtpReader implements RtpListener {
 
 
     // 写入文件
-    File outputFile = new File("lcc.wav");
+    File outputFile = new File("liuchunchi.wav");
 
     private List<byte[]> finalResult = new ArrayList<>();
 
@@ -95,12 +95,13 @@ public class IncomingRtpReader implements RtpListener {
             log.info("收到的字节长度:{}", rawBuf.length);
             log.info("收到的字节总数量:{}", finalResult.size());
             //生成一个wav音频文件
-            if (finalResult.size() == 1000) {
+            if (finalResult.size() == 200) {
                 try {
                     byte[] result = ByteUtils.mergeBytes(finalResult);
                     ByteArrayInputStream bais = new ByteArrayInputStream(result);
                     AudioInputStream audioInputStream = new AudioInputStream(bais, format, result.length / format.getFrameSize());
                     AudioSystem.write(audioInputStream, AudioFileFormat.Type.WAVE, outputFile);
+                    log.info("=====================================>创建音频文件成功");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

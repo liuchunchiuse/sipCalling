@@ -19,6 +19,7 @@
 
 package net.sourceforge.peers.media;
 
+import cn.hutool.json.JSONUtil;
 import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.peers.Logger;
 import net.sourceforge.peers.rtp.RFC3551;
@@ -90,6 +91,7 @@ public class CaptureRtpSender {
                 rawDataInput.close();
                 throw new RuntimeException("unknown payload type");
         }
+        log.info("======>rtpSender信息:{}", JSONUtil.toJsonStr(rtpSession));
         rtpSender = new RtpSender(encodedDataInput, rtpSession, mediaDebug,
                 codec, logger, peersHome, latch);
     }

@@ -77,7 +77,7 @@ public class RtpSender implements Runnable {
             try {
                 rtpSenderInput = new FileOutputStream(fileName);
             } catch (FileNotFoundException e) {
-                logger.error("cannot create file", e);
+                log.error("cannot create file", e);
                 return;
             }
         }
@@ -119,7 +119,7 @@ public class RtpSender implements Runnable {
                     numBytesRead += tempBytesRead;
                 }
             } catch (IOException e) {
-                logger.error("input/output error", e);
+                log.error("input/output error", e);
                 return;
             }
             byte[] trimmedBuffer;
@@ -133,7 +133,7 @@ public class RtpSender implements Runnable {
                 try {
                     rtpSenderInput.write(trimmedBuffer); // TODO use classpath
                 } catch (IOException e) {
-                    logger.error("cannot write to file", e);
+                    log.error("cannot write to file", e);
                     break;
                 }
             }
@@ -172,7 +172,7 @@ public class RtpSender implements Runnable {
                 try {
                     Thread.sleep(Math.round(sleepTime / 1000000f));
                 } catch (InterruptedException e) {
-                    logger.error("Thread interrupted", e);
+                    log.error("Thread interrupted", e);
                     return;
                 }
                 rtpSession.send(rtpPacket);
@@ -190,7 +190,7 @@ public class RtpSender implements Runnable {
             try {
                 rtpSenderInput.close();
             } catch (IOException e) {
-                logger.error("cannot close file", e);
+                log.error("cannot close file", e);
                 return;
             }
         }
@@ -199,7 +199,7 @@ public class RtpSender implements Runnable {
             try {
                 latch.await();
             } catch (InterruptedException e) {
-                logger.error("interrupt exception", e);
+                log.error("interrupt exception", e);
             }
         }
     }
