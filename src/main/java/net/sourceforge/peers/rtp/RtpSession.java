@@ -179,6 +179,7 @@ public class RtpSession {
                 new PrivilegedAction<Void>() {
                     @Override
                     public Void run() {
+                        log.info("==========================>开始关闭datagramSocket");
                         datagramSocket.close();
                         return null;
                     }

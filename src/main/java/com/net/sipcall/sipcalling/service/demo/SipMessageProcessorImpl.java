@@ -381,6 +381,8 @@ public class SipMessageProcessorImpl implements SipMessageProcessor {
         // 进行任何必要的清理工作
         rtpSession.stop();
         captureRtpSender.stop();
+        datagramSocket.close();
+        datagramSocket = null;
     }
 
     private void doResponseRegister(ResponseEvent responseEvent, AddressFactory addressFactory, MessageFactory messageFactory, HeaderFactory headerFactory, SipProvider sipProvider, Response response) {
@@ -410,6 +412,7 @@ public class SipMessageProcessorImpl implements SipMessageProcessor {
         log.info("初始化FileReader........");
         fileReader.init();
         String localAddress = "47.99.40.56";
+        //线路提供方ip
         String remoteAddress = "47.96.76.228";
 //        int remotePort = 8830;
 
@@ -425,12 +428,10 @@ public class SipMessageProcessorImpl implements SipMessageProcessor {
         //创建rpt会话
 
         try {
-            //和sdp中声明的端口一致
+            //datagramSocket端口号和sdp中声明的端口一致
             log.info("==========>判断datagramSocket是否关闭,datagramSocket是否为空:{}", Objects.isNull(datagramSocket));
-            if (Objects.isNull(datagramSocket)) {
+            if (Objects.isNull(datagramSocket) || datagramSocket.isClosed()) {
                 datagramSocket = new DatagramSocket(8830);
-            } else {
-                log.info("==========>判断datagramSocket是否关闭,是否关闭:{}", datagramSocket.isClosed());
             }
         } catch (SocketException e) {
             throw new RuntimeException(e);

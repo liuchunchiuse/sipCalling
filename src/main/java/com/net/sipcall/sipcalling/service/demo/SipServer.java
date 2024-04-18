@@ -94,21 +94,21 @@ public class SipServer implements SipListener {
 
     @Override
     public void processTimeout(TimeoutEvent timeoutEvent) {
-        System.out.println("=============>processTimeout");
+        log.info("=============>processTimeout");
     }
 
     @Override
     public void processIOException(IOExceptionEvent ioExceptionEvent) {
-        System.out.println("=============>processIOException");
+        log.info("=============>processIOException");
     }
 
     @Override
     public void processTransactionTerminated(TransactionTerminatedEvent transactionTerminatedEvent) {
-        System.out.println("=============>processTransactionTerminated");
+        log.info("=============>processTransactionTerminated进程事物终止处理");
     }
 
     @Override
     public void processDialogTerminated(DialogTerminatedEvent dialogTerminatedEvent) {
-        System.out.println("=============>processDialogTerminated");
+        log.info("=============>processDialogTerminated进程对话框终止");
     }
 }

@@ -23,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @Slf4j
@@ -37,7 +38,7 @@ public class SipServiceImpl implements SipService, SipListener {
     private UserAgent userAgent;
     private SipRequest sipRequest;
 
-    private LinkedHashMap<String, String> statusMap = new LinkedHashMap<>();
+    private ConcurrentHashMap<String, String> statusMap = new ConcurrentHashMap<>();
 
     @Override
     public void clickToDial(SIPDto sipDto) throws SocketException {
